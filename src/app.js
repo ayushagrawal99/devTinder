@@ -6,9 +6,14 @@ const User = require('./models/user');
 const {validateSignUpData} = require('./utils/validation');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+
 
 // parse the JSON obj which comes from client.
 app.use(express.json());
+app.use(cookieParser());
+
 
 app.post('/signup', async (req,res,next) => {
     const {firstName, lastName, emailId, password} = req.body;
@@ -58,6 +63,35 @@ app.get('/feed', async (req,res,next) => {
         } 
     } catch (error) {
         res.status(400).send("Error fetching the user data")
+    }
+})
+
+// Get user profile
+app.get('/profile', async (req,res,next) => {
+    try {
+        const cookies = req.cookies;
+        const {token} = cookies;
+
+        if(!token){
+            throw new Error("Token is not accessable");
+        }
+
+        const decodedToken = jwt.verify(token, '#devTinder@123');
+        const {_id} = decodedToken;
+
+        if(!_id){
+            throw new Error("Token is not correct"); 
+        }
+
+        let user = await User.findById({_id});
+
+        if(user){
+            res.send(user) 
+        } else {
+            res.status(404).send("user not found")
+        }
+    } catch (error) {
+        res.status(400).send("Error fetching the user data "+error)
     }
 })
 
@@ -113,9 +147,13 @@ app.post('/login', async (req,res,next) => {
         }
 
         let isValidPassword = await bcrypt.compare(password, user.password);
-        console.log(isValidPassword);
 
         if(isValidPassword){
+
+            // create JWT token
+            const token = jwt.sign({ _id: user.id }, '#devTinder@123');
+            res.cookie('token', token)
+
             res.send('Login successfully') 
         } else {
             throw new Error("Invalid credential") 
