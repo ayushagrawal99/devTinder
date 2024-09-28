@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -41,11 +43,10 @@ const userSchema = new mongoose.Schema({
     },
     gender: {
         type : String,
-        validate(value){
-            if(!["male", "female", "others"].includes(value)){
-                throw Error("this gender is not allowed ", value)
-            }
-        }
+        enum : {
+            values: ["male", "female", "others"],
+            message: `{VALUE} gender is not allowed`,
+        },
     },
     photoUrl: {
         type : String,
@@ -62,6 +63,21 @@ const userSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+userSchema.methods.getJWT = async function () {
+    let user = this; // it represent current instance of user
+
+    let token = await jwt.sign({ _id: user.id }, '#devTinder@123', {expiresIn : '1h'});
+    return token;
+}
+
+userSchema.methods.validatePassword = async function (inputUserPassword) {
+    let user = this; // it represent current instance of user
+    let hashedPassword = user.password;
+
+    let isValidPassword = await bcrypt.compare(inputUserPassword, hashedPassword);
+    return isValidPassword;
+}
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;

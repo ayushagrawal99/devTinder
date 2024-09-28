@@ -14,6 +14,22 @@ const validateSignUpData = (req) => {
     }
 }
 
+const validateEditUserData = (req) => {
+    const data = req.body;
+
+    const VALID_UPDATE = ["firstName", "lastName", "gender", "age", "about", "skills", "photoUrl"];
+    
+    let isValidUpdate = Object.keys(data).every((el) => VALID_UPDATE.includes(el));
+
+    if(!isValidUpdate){
+        throw new Error("Not Allowed to update fields")
+    }
+
+    // TODO we can validate each fields
+    return;
+}
+
 module.exports = {
-    validateSignUpData
+    validateSignUpData,
+    validateEditUserData
 };
